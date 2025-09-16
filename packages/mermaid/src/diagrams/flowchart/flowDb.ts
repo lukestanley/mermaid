@@ -5,7 +5,7 @@ import type { DiagramDB } from '../../diagram-api/types.js';
 import { log } from '../../logger.js';
 import { isValidShape, type ShapeID } from '../../rendering-util/rendering-elements/shapes.js';
 import type { Edge, Node } from '../../rendering-util/types.js';
-import type { EdgeMetaData, NodeMetaData } from '../../types.js';
+import type { EdgeMetaData, ManualPosition, NodeMetaData } from '../../types.js';
 import utils, { getEdgeId } from '../../utils.js';
 import common from '../common/common.js';
 import {
@@ -32,6 +32,74 @@ interface LinkData {
 }
 
 const MERMAID_DOM_ID_PREFIX = 'flowchart-';
+
+const parseCoordinate = (value: unknown, axis: 'x' | 'y', id: string): number => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed.length > 0) {
+      const parsed = Number(trimmed);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+  }
+
+  throw new Error(
+    `Invalid ${axis}-coordinate for node "${id}". Position values must be numbers and can be provided as strings.`
+  );
+};
+
+const parseManualPosition = (
+  position: NodeMetaData['position'],
+  id: string
+): ManualPosition | undefined => {
+  if (position === undefined || position === null) {
+    return undefined;
+  }
+
+  const createPosition = (xValue: unknown, yValue: unknown): ManualPosition => ({
+    x: parseCoordinate(xValue, 'x', id),
+    y: parseCoordinate(yValue, 'y', id),
+  });
+
+  if (Array.isArray(position)) {
+    if (position.length < 2) {
+      throw new Error(
+        `Invalid position for node "${id}". Arrays must contain at least two values representing x and y coordinates.`
+      );
+    }
+    return createPosition(position[0], position[1]);
+  }
+
+  if (typeof position === 'string') {
+    const parts = position
+      .split(/[\s,]+/)
+      .map((part) => part.trim())
+      .filter((part) => part.length > 0);
+
+    if (parts.length < 2) {
+      throw new Error(
+        `Invalid position for node "${id}". Provide two numeric values separated by a comma or whitespace.`
+      );
+    }
+
+    return createPosition(parts[0], parts[1]);
+  }
+
+  if (typeof position === 'object' && !Array.isArray(position)) {
+    const maybeRecord = position as { x?: unknown; y?: unknown };
+    if ('x' in maybeRecord || 'y' in maybeRecord) {
+      return createPosition(maybeRecord.x, maybeRecord.y);
+    }
+  }
+
+  throw new Error(
+    `Invalid position for node "${id}". Use { x, y }, [x, y] or "x, y" to provide manual coordinates.`
+  );
+};
 
 // We are using arrow functions assigned to class instance fields instead of methods as they are required by flow JISON
 export class FlowDB implements DiagramDB {
@@ -220,6 +288,9 @@ export class FlowDB implements DiagramDB {
       }
       if (doc?.pos) {
         vertex.pos = doc?.pos;
+      }
+      if (doc?.position !== undefined) {
+        vertex.manualPosition = parseManualPosition(doc.position, id);
       }
       if (doc?.img) {
         vertex.img = doc?.img;
@@ -1030,6 +1101,7 @@ You have to call mermaid.initialize.`
         assetWidth: vertex.assetWidth,
         assetHeight: vertex.assetHeight,
         constraint: vertex.constraint,
+        manualPosition: vertex.manualPosition,
       };
       if (isGroup) {
         nodes.push({
