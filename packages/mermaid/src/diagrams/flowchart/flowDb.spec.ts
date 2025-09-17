@@ -164,6 +164,84 @@ describe('flow db getData', () => {
     expect(edges[2].curve).toBe('catmullRom');
     expect(edges[3].curve).toBe('stepBefore');
   });
+
+  it.each([
+    ['object', ' position: { x: 5, y: 10 } ', { x: 5, y: 10 }],
+    ['array', ' position: [15, 25] ', { x: 15, y: 25 }],
+    ['string', ' position: "35, 45" ', { x: 35, y: 45 }],
+  ])('should capture manual positions when provided as a %s', (_, metadata, expected) => {
+    flowDb.addVertex('A', { text: 'A', type: 'text' }, undefined, [], [], '', {}, metadata);
+
+    const { nodes } = flowDb.getData();
+    const node = nodes.find((item) => item.id === 'A');
+
+    expect(node?.manualPosition).toEqual(expected);
+  });
+
+  it('should accept object metadata with numeric strings', () => {
+    flowDb.addVertex(
+      'A',
+      { text: 'A', type: 'text' },
+      undefined,
+      [],
+      [],
+      '',
+      {},
+      ' position: { x: "12", y: "34" } '
+    );
+
+    const node = flowDb.getData().nodes.find((item) => item.id === 'A');
+    expect(node?.manualPosition).toEqual({ x: 12, y: 34 });
+  });
+
+  it.each([
+    ['(55, 65)', { x: 55, y: 65 }],
+    ['[75 85]', { x: 75, y: 85 }],
+  ])('should accept wrapped string coordinates: %s', (value, expected) => {
+    flowDb.addVertex(
+      'A',
+      { text: 'A', type: 'text' },
+      undefined,
+      [],
+      [],
+      '',
+      {},
+      ` position: "${value}" `
+    );
+
+    const node = flowDb.getData().nodes.find((item) => item.id === 'A');
+    expect(node?.manualPosition).toEqual(expected);
+  });
+
+  it('should throw for invalid manual positions', () => {
+    expect(() =>
+      flowDb.addVertex(
+        'A',
+        { text: 'A', type: 'text' },
+        undefined,
+        [],
+        [],
+        '',
+        {},
+        ' position: nope '
+      )
+    ).toThrowError(/Invalid position/);
+  });
+
+  it('should require both x and y when using object metadata', () => {
+    expect(() =>
+      flowDb.addVertex(
+        'A',
+        { text: 'A', type: 'text' },
+        undefined,
+        [],
+        [],
+        '',
+        {},
+        ' position: { x: 5 } '
+      )
+    ).toThrowError(/Provide both x and y/);
+  });
 });
 
 describe('flow db direction', () => {
