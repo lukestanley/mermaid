@@ -27,6 +27,71 @@ import { log } from '../../../logger.js';
 import { getSubGraphTitleMargins } from '../../../utils/subGraphTitleMargins.js';
 import { getConfig } from '../../../diagram-api/diagramAPI.js';
 
+const toFinite = (value) =>
+  typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+
+export const applyManualNodePositions = (graph) => {
+  const deltas = new Map();
+
+  graph.nodes().forEach((nodeId) => {
+    const node = graph.node(nodeId);
+    if (!node || node.isGroup || !node.manualPosition) {
+      return;
+    }
+
+    const targetX = toFinite(node.manualPosition.x);
+    const targetY = toFinite(node.manualPosition.y);
+
+    if (targetX === undefined || targetY === undefined) {
+      return;
+    }
+
+    const currentX = toFinite(node.x) ?? 0;
+    const currentY = toFinite(node.y) ?? 0;
+    const dx = targetX - currentX;
+    const dy = targetY - currentY;
+
+    node.x = targetX;
+    node.y = targetY;
+    deltas.set(nodeId, { dx, dy });
+  });
+
+  if (deltas.size === 0) {
+    return;
+  }
+
+  graph.edges().forEach((edgeObj) => {
+    const edge = graph.edge(edgeObj);
+    if (!edge) {
+      return;
+    }
+
+    const startDelta = deltas.get(edgeObj.v) ?? { dx: 0, dy: 0 };
+    const endDelta = deltas.get(edgeObj.w) ?? { dx: 0, dy: 0 };
+
+    if (Array.isArray(edge.points) && edge.points.length > 0) {
+      const lastIndex = edge.points.length - 1;
+      edge.points = edge.points.map((point, index) => {
+        const t = lastIndex === 0 ? 1 : index / lastIndex;
+        const dx = startDelta.dx * (1 - t) + endDelta.dx * t;
+        const dy = startDelta.dy * (1 - t) + endDelta.dy * t;
+        return {
+          ...point,
+          x: point.x + dx,
+          y: point.y + dy,
+        };
+      });
+    }
+
+    if (typeof edge.x === 'number' && Number.isFinite(edge.x)) {
+      edge.x += (startDelta.dx + endDelta.dx) / 2;
+    }
+    if (typeof edge.y === 'number' && Number.isFinite(edge.y)) {
+      edge.y += (startDelta.dy + endDelta.dy) / 2;
+    }
+  });
+};
+
 const recursiveRender = async (_elem, graph, diagramType, id, parentCluster, siteConfig) => {
   log.warn('Graph in recursive render:XAX', graphlibJson.write(graph), parentCluster);
   const dir = graph.graph().rankdir;
@@ -163,6 +228,8 @@ const recursiveRender = async (_elem, graph, diagramType, id, parentCluster, sit
   log.info('############################################# XXX');
 
   dagreLayout(graph);
+
+  applyManualNodePositions(graph);
 
   log.info('Graph after layout:', JSON.stringify(graphlibJson.write(graph)));
   // Move the nodes to the correct place
