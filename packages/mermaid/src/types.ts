@@ -8,9 +8,15 @@ export interface NodeMetaData {
   w?: string;
   h?: string;
   constraint?: 'on' | 'off';
+  position?: ManualPosition | [unknown, unknown] | string;
   priority: 'Very High' | 'High' | 'Medium' | 'Low' | 'Very Low';
   assigned?: string;
   ticket?: string;
+}
+
+export interface ManualPosition {
+  x: number;
+  y: number;
 }
 
 export interface ParticipantMetaData {
