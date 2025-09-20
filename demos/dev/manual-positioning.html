@@ -113,6 +113,9 @@
           console, reflected here, dispatched via the <code>mermaidmanualpositionchange</code> event, and
           passed to <code>window.onManualPositionChange</code> when defined.
         </p>
+        <label for="layout-select">Layout algorithm</label>
+        <select id="layout-select"></select>
+        <p class="info" id="layout-description"></p>
         <label for="example-select">Choose a scenario</label>
         <select id="example-select"></select>
         <label for="manual-editor">Manual coordinates</label>
@@ -139,8 +142,41 @@
       import mermaid from '/mermaid.esm.mjs';
       import layouts from '/mermaid-layout-elk.esm.mjs';
 
+      const layoutOptions = [
+        {
+          value: 'dagre',
+          label: 'Dagre (layered)',
+          description: 'The default layered solver keeps directional graphs tidy with even spacing.',
+        },
+        {
+          value: 'cose-bilkent',
+          label: 'fCoSE (force-directed)',
+          description:
+            'Force-directed placement from Cytoscape spreads nodes naturally while respecting manual coordinates.',
+        },
+        {
+          value: 'elk',
+          label: 'ELK layered',
+          description:
+            "ELK's layered engine focuses on clear orthogonal routing and balanced layers for dense diagrams.",
+        },
+        {
+          value: 'elk.force',
+          label: 'ELK force',
+          description:
+            'A physics-inspired ELK layout that pairs well with manual tweaks for organic storyboards.',
+        },
+      ];
+
       mermaid.registerLayoutLoaders(layouts);
-      mermaid.initialize({ startOnLoad: false, theme: 'default' });
+
+      const baseConfig = {
+        startOnLoad: false,
+        theme: 'default',
+        includeLargeFeatures: true,
+      };
+
+      mermaid.initialize(baseConfig);
 
       const examples = [
         {
@@ -203,6 +239,8 @@
         },
       ];
 
+      const layoutSelectEl = document.getElementById('layout-select');
+      const layoutDescriptionEl = document.getElementById('layout-description');
       const selectEl = document.getElementById('example-select');
       const editorEl = document.getElementById('manual-editor');
       const outputEl = document.getElementById('positions-output');
@@ -222,6 +260,7 @@
         positions: null,
         isInitializing: false,
         renderScheduled: false,
+        layout: layoutOptions[0]?.value ?? 'dagre',
       };
 
       const formatNumber = (value) => {
@@ -291,6 +330,31 @@
         return snapshot;
       };
 
+      const getLayoutOption = (value) =>
+        layoutOptions.find((option) => option.value === value) ?? layoutOptions[0];
+
+      const updateLayoutUi = () => {
+        const option = getLayoutOption(state.layout);
+        if (layoutSelectEl && layoutSelectEl.value !== option.value) {
+          layoutSelectEl.value = option.value;
+        }
+        if (layoutDescriptionEl) {
+          layoutDescriptionEl.textContent = option?.description ?? '';
+          layoutDescriptionEl.hidden = !option?.description;
+        }
+      };
+
+      const applyLayoutDirective = (diagram) => {
+        if (typeof diagram !== 'string') {
+          return diagram;
+        }
+        const layout = state.layout;
+        if (!layout || layout === 'dagre') {
+          return diagram;
+        }
+        return `%%{init: { "layout": "${layout}" }}%%\n${diagram}`;
+      };
+
       const updateDisplays = ({ syncEditor = true } = {}) => {
         if (editorEl && syncEditor) {
           if (editorEl.value !== state.manualText) {
@@ -318,7 +382,7 @@
         }
         const snapshot = getSnapshot();
         console.log(
-          `[${state.currentExample.title}] ${nodeId} → (${formatNumber(pos.x)}, ${formatNumber(pos.y)})`,
+          `[${state.currentExample.title} • ${state.layout}] ${nodeId} → (${formatNumber(pos.x)}, ${formatNumber(pos.y)})`,
           snapshot
         );
         const detail = {
@@ -327,6 +391,7 @@
           position: { ...pos },
           positions: snapshot,
           text: state.manualText,
+          layout: state.layout,
         };
         document.dispatchEvent(new CustomEvent('mermaidmanualpositionchange', { detail }));
         if (typeof window.onManualPositionChange === 'function') {
@@ -572,7 +637,8 @@
       const renderAutomaticDiagram = async (example) => {
         const active = state.currentExample;
         try {
-          const { svg } = await mermaid.render(`${example.id}-automatic`, example.before);
+          const code = applyLayoutDirective(example.before);
+          const { svg } = await mermaid.render(`${example.id}-automatic`, code);
           if (active !== state.currentExample) {
             return;
           }
@@ -588,7 +654,8 @@
       const renderManualDiagram = async (example) => {
         const active = state.currentExample;
         try {
-          const { svg } = await mermaid.render(`${example.id}-manual`, state.manualText);
+          const code = applyLayoutDirective(state.manualText);
+          const { svg } = await mermaid.render(`${example.id}-manual`, code);
           if (active !== state.currentExample) {
             return;
           }
@@ -623,6 +690,17 @@
         await renderManualDiagram(example);
       };
 
+      if (layoutSelectEl) {
+        for (const option of layoutOptions) {
+          const optionEl = document.createElement('option');
+          optionEl.value = option.value;
+          optionEl.textContent = option.label;
+          layoutSelectEl.append(optionEl);
+        }
+      }
+
+      updateLayoutUi();
+
       for (const example of examples) {
         const option = document.createElement('option');
         option.value = example.id;
@@ -641,6 +719,23 @@
           state.renderScheduled = false;
           applyManualText(text, { canonicalize: false, syncEditor: false });
           scheduleManualRender();
+        });
+      }
+
+      if (layoutSelectEl) {
+        layoutSelectEl.addEventListener('change', async () => {
+          const option = getLayoutOption(layoutSelectEl.value);
+          if (option.value === state.layout) {
+            updateLayoutUi();
+            return;
+          }
+          state.layout = option.value;
+          updateLayoutUi();
+          state.renderScheduled = false;
+          if (state.currentExample) {
+            await renderAutomaticDiagram(state.currentExample);
+            await renderManualDiagram(state.currentExample);
+          }
         });
       }
 
