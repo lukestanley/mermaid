@@ -1,4 +1,5 @@
 import type { ShapeID } from '../../rendering-util/rendering-elements/shapes.js';
+import type { ManualPosition } from '../../types.js';
 
 /**
  * Valid `type` args to `yy.addVertex` taken from
@@ -45,6 +46,7 @@ export interface FlowVertex {
   defaultWidth?: number;
   imageAspectRatio?: number;
   constraint?: 'on' | 'off';
+  manualPosition?: ManualPosition;
 }
 
 export interface FlowText {

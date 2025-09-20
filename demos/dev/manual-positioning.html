@@ -1,0 +1,558 @@
+<!--Duplicate of dev/example.html tailored for manual positioning demo-->
+<html>
+  <head>
+    <title>Mermaid manual positioning demo</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        line-height: 1.5;
+      }
+      body {
+        margin: 0;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        background: radial-gradient(circle at top left, rgba(80, 120, 200, 0.08), transparent 55%);
+      }
+      h1 {
+        margin: 0;
+        text-align: center;
+        letter-spacing: 0.02em;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(260px, 340px) 1fr;
+        gap: 1.5rem;
+        align-items: start;
+      }
+      .pane {
+        background: rgba(255, 255, 255, 0.72);
+        border-radius: 0.75rem;
+        border: 1px solid rgba(120, 120, 120, 0.25);
+        padding: 1.25rem;
+        box-shadow: 0 16px 36px rgba(10, 30, 70, 0.1);
+        backdrop-filter: blur(8px);
+      }
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+      }
+      select,
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 0.5rem;
+        border: 1px solid rgba(120, 120, 120, 0.35);
+        padding: 0.6rem 0.75rem;
+        font-size: 0.95rem;
+        font-family: 'Fira Code', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        background: rgba(255, 255, 255, 0.92);
+        color: inherit;
+      }
+      textarea {
+        min-height: 180px;
+        resize: vertical;
+        margin-bottom: 0.75rem;
+        white-space: pre;
+      }
+      .output {
+        min-height: 120px;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        border: 1px solid rgba(120, 120, 120, 0.35);
+        background: rgba(16, 28, 45, 0.9);
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 0.85rem;
+        font-family: 'Fira Code', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        overflow: auto;
+        white-space: pre;
+      }
+      .diagrams {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 1.5rem;
+      }
+      figure {
+        margin: 0;
+        border-radius: 0.75rem;
+        border: 1px solid rgba(120, 120, 120, 0.2);
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.7);
+        box-shadow: 0 12px 30px rgba(15, 25, 45, 0.08);
+      }
+      figcaption {
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+        text-align: center;
+      }
+      svg {
+        width: 100%;
+        height: auto;
+      }
+      .info {
+        margin: 0 0 1rem 0;
+        color: rgba(30, 30, 30, 0.75);
+        font-size: 0.95rem;
+      }
+      @media (max-width: 980px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Manual node positioning playground</h1>
+    <div class="layout">
+      <aside class="pane">
+        <p class="info">
+          Drag nodes in the manual diagram to capture coordinates. Updated positions are logged to the
+          console, reflected here, dispatched via the <code>mermaidmanualpositionchange</code> event, and
+          passed to <code>window.onManualPositionChange</code> when defined.
+        </p>
+        <label for="example-select">Choose a scenario</label>
+        <select id="example-select"></select>
+        <label for="manual-editor">Manual coordinates</label>
+        <textarea id="manual-editor" spellcheck="false" readonly></textarea>
+        <div class="output" id="positions-output">Select an example to inspect coordinates.</div>
+      </aside>
+      <main class="pane">
+        <h2 id="example-title"></h2>
+        <p class="info" id="example-description"></p>
+        <div class="diagrams">
+          <figure>
+            <figcaption>Automatic layout</figcaption>
+            <div id="automatic-diagram"></div>
+          </figure>
+          <figure>
+            <figcaption>Manual coordinates</figcaption>
+            <div id="manual-diagram"></div>
+          </figure>
+        </div>
+      </main>
+    </div>
+    <script type="module">
+      import mermaid from '/mermaid.esm.mjs';
+      import layouts from '/mermaid-layout-elk.esm.mjs';
+
+      mermaid.registerLayoutLoaders(layouts);
+      mermaid.initialize({ startOnLoad: false, theme: 'default' });
+
+      const examples = [
+        {
+          id: 'assembly-line',
+          title: 'Assembly line overview',
+          description:
+            'Manual coordinates stagger the intake, build, and QA steps to mimic the conveyor belt spacing.',
+          before: `flowchart LR\n  Intake --> Build --> QA --> Ship`,
+          after: `flowchart LR\n  Intake@{ position: "0 40" }\n  Build@{ position: [140, 0] }\n  QA@{ position: [280, 60] }\n  Ship@{ position: "420 20" }\n  Intake --> Build --> QA --> Ship`,
+        },
+        {
+          id: 'decision-diamond',
+          title: 'Decision diamond',
+          description:
+            'The decision and outcomes form a diamond layout by nudging the approve/deny nodes around the decision.',
+          before: `flowchart TB\n  Start --> Decision\n  Decision -->|Approve| Approve\n  Decision -->|Deny| Deny\n  Approve --> Archive\n  Deny --> Rework`,
+          after: `flowchart TB\n  Start@{ position: "200 0" }\n  Decision@{ position: [200, 80] }\n  Approve@{ position: [320, 160] }\n  Deny@{ position: [80, 160] }\n  Archive@{ position: [320, 240] }\n  Rework@{ position: [80, 240] }\n  Start --> Decision\n  Decision -->|Approve| Approve\n  Decision -->|Deny| Deny\n  Approve --> Archive\n  Deny --> Rework`,
+        },
+        {
+          id: 'swimlane-hand-off',
+          title: 'Swimlane hand-off',
+          description: 'Nodes align into product, design, and engineering columns by setting X coordinates.',
+          before: `flowchart TB\n  Concept --> Wireframe --> Prototype --> Launch`,
+          after: `flowchart TB\n  Concept@{ position: "0, 0" }\n  Wireframe@{ position: "200, 0" }\n  Prototype@{ position: "400, 0" }\n  Launch@{ position: "600, 0" }\n  Research@{ position: "0, 120" }\n  Review@{ position: "200, 120" }\n  Test@{ position: "400, 120" }\n  Measure@{ position: "600, 120" }\n  Concept --> Wireframe --> Prototype --> Launch\n  Concept --> Research\n  Wireframe --> Review\n  Prototype --> Test\n  Launch --> Measure`,
+        },
+        {
+          id: 'support-escalation',
+          title: 'Support escalation map',
+          description: 'Manual positions create a left-to-right escalation ladder with callbacks underneath.',
+          before: `flowchart LR\n  Tier1 --> Tier2 --> Tier3\n  Tier1 --> KB\n  Tier2 --> Vendor\n  Tier3 --> Report`,
+          after: `flowchart LR\n  Tier1@{ position: "0 0" }\n  Tier2@{ position: [180, 0] }\n  Tier3@{ position: [360, 0] }\n  KB@{ position: "0 120" }\n  Vendor@{ position: [180, 120] }\n  Report@{ position: [360, 120] }\n  Tier1 --> Tier2 --> Tier3\n  Tier1 --> KB\n  Tier2 --> Vendor\n  Tier3 --> Report`,
+        },
+        {
+          id: 'release-train',
+          title: 'Release train timeline',
+          description: 'A quarterly release train is plotted across a calendar-like grid for quick scanning.',
+          before: `flowchart LR\n  Plan --> Build --> Integrate --> Release\n  Plan --> Retro\n  Build --> Demo\n  Integrate --> Hardening\n  Release --> Celebrate`,
+          after: `flowchart LR\n  Plan@{ position: "0 0" }\n  Build@{ position: "160 0" }\n  Integrate@{ position: "320 0" }\n  Release@{ position: "480 0" }\n  Retro@{ position: "0 120" }\n  Demo@{ position: "160 120" }\n  Hardening@{ position: "320 120" }\n  Celebrate@{ position: "480 120" }\n  Plan --> Build --> Integrate --> Release\n  Plan --> Retro\n  Build --> Demo\n  Integrate --> Hardening\n  Release --> Celebrate`,
+        },
+        {
+          id: 'subgraph-layout',
+          title: 'Data center rooms',
+          description: 'Two rooms stay grouped while rack nodes are arranged manually inside each subgraph.',
+          before: `flowchart LR\n  subgraph RoomA\n    A1 --> A2 --> A3\n  end\n  subgraph RoomB\n    B1 --> B2 --> B3\n  end\n  A3 --> B1`,
+          after: `flowchart LR\n  subgraph RoomA\n    direction LR\n    A1@{ position: "0 40" }\n    A2@{ position: [120, 40] }\n    A3@{ position: [240, 40] }\n    A1 --> A2 --> A3\n  end\n  subgraph RoomB\n    direction LR\n    B1@{ position: [420, 40] }\n    B2@{ position: [540, 40] }\n    B3@{ position: [660, 40] }\n    B1 --> B2 --> B3\n  end\n  A3 --> B1`,
+        },
+        {
+          id: 'feedback-loop',
+          title: 'Feedback loop highlight',
+          description: 'Feedback and iteration nodes wrap under the main cycle by curving them beneath.',
+          before: `flowchart TD\n  Idea --> Build --> Launch --> Monitor --> Improve --> Idea`,
+          after: `flowchart TD\n  Idea@{ position: "200 0" }\n  Build@{ position: "200 120" }\n  Launch@{ position: "200 240" }\n  Monitor@{ position: "200 360" }\n  Improve@{ position: [60, 360] }\n  Idea --> Build --> Launch --> Monitor\n  Monitor --> Improve\n  Improve --> Idea`,
+        },
+        {
+          id: 'service-blueprint',
+          title: 'Service blueprint snapshot',
+          description: 'Frontstage, backstage, and systems swimlanes become a tidy matrix with coordinates.',
+          before: `flowchart TB\n  Customer --> Agent --> System\n  Customer --> SelfService\n  Agent --> Knowledge\n  System --> Logs`,
+          after: `flowchart TB\n  Customer@{ position: "0 0" }\n  Agent@{ position: [240, 0] }\n  System@{ position: [480, 0] }\n  SelfService@{ position: "0 160" }\n  Knowledge@{ position: [240, 160] }\n  Logs@{ position: [480, 160] }\n  Customer --> Agent --> System\n  Customer --> SelfService\n  Agent --> Knowledge\n  System --> Logs`,
+        },
+      ];
+
+      const selectEl = document.getElementById('example-select');
+      const editorEl = document.getElementById('manual-editor');
+      const outputEl = document.getElementById('positions-output');
+      const titleEl = document.getElementById('example-title');
+      const descriptionEl = document.getElementById('example-description');
+      const automaticTarget = document.getElementById('automatic-diagram');
+      const manualTarget = document.getElementById('manual-diagram');
+
+      const manualNodePattern = /^(\s*([\w$.-]+)@\{\s*position\s*:\s*)([^}]+)(\s*\}.*)$/;
+
+      const state = {
+        currentExample: null,
+        manualLines: [],
+        manualNodes: new Map(),
+        manualText: '',
+        positionTarget: null,
+        positions: null,
+        isInitializing: false,
+        renderScheduled: false,
+      };
+
+      const formatNumber = (value) => {
+        const rounded = Math.round(value * 10) / 10;
+        if (!Number.isFinite(rounded)) {
+          return '0';
+        }
+        return Number.isInteger(rounded) ? String(Math.trunc(rounded)) : rounded.toFixed(1).replace(/\.0$/, '');
+      };
+
+      const formatPosition = (pos) => `[${formatNumber(pos.x)}, ${formatNumber(pos.y)}]`;
+
+      const parseCoordinateString = (raw) => {
+        if (typeof raw !== 'string') {
+          return null;
+        }
+        const cleaned = raw.replace(/[\[\](){}]/g, ' ').replace(/["']/g, ' ');
+        const parts = cleaned.split(/[\s,]+/).filter(Boolean);
+        if (parts.length < 2) {
+          return null;
+        }
+        const [xStr, yStr] = parts;
+        const x = Number(xStr);
+        const y = Number(yStr);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) {
+          return null;
+        }
+        return { x, y };
+      };
+
+      const normalizePosition = (pos) => {
+        const x = Number(pos?.x);
+        const y = Number(pos?.y);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) {
+          return null;
+        }
+        return {
+          x: Math.round(x * 100) / 100,
+          y: Math.round(y * 100) / 100,
+        };
+      };
+
+      const parseManualPositions = () => {
+        const manualNodes = new Map();
+        const positions = {};
+        state.manualLines.forEach((line, index) => {
+          const match = manualNodePattern.exec(line);
+          if (!match) {
+            return;
+          }
+          const [, prefix, nodeId, coordsRaw, suffix] = match;
+          manualNodes.set(nodeId, { lineIndex: index, prefix, suffix });
+          const coords = parseCoordinateString(coordsRaw);
+          if (coords) {
+            positions[nodeId] = coords;
+          }
+        });
+        state.manualNodes = manualNodes;
+        return positions;
+      };
+
+      const getSnapshot = () => {
+        const snapshot = {};
+        for (const [nodeId, coords] of Object.entries(state.positionTarget ?? {})) {
+          snapshot[nodeId] = { x: coords.x, y: coords.y };
+        }
+        return snapshot;
+      };
+
+      const updateEditor = () => {
+        if (editorEl) {
+          editorEl.value = state.manualText;
+        }
+        if (outputEl) {
+          const snapshot = getSnapshot();
+          outputEl.textContent = Object.keys(snapshot).length
+            ? JSON.stringify(snapshot, null, 2)
+            : 'Drag nodes to populate manual coordinates.';
+        }
+      };
+
+      const emitManualChange = (nodeId, pos) => {
+        if (state.isInitializing || !state.currentExample) {
+          return;
+        }
+        const snapshot = getSnapshot();
+        console.log(
+          `[${state.currentExample.title}] ${nodeId} → (${formatNumber(pos.x)}, ${formatNumber(pos.y)})`,
+          snapshot
+        );
+        const detail = {
+          exampleId: state.currentExample.id,
+          nodeId,
+          position: { ...pos },
+          positions: snapshot,
+          text: state.manualText,
+        };
+        document.dispatchEvent(new CustomEvent('mermaidmanualpositionchange', { detail }));
+        if (typeof window.onManualPositionChange === 'function') {
+          try {
+            window.onManualPositionChange(detail);
+          } catch (error) {
+            console.error('onManualPositionChange handler error', error);
+          }
+        }
+        updateEditor();
+      };
+
+      const updateManualLine = (nodeId, pos) => {
+        const info = state.manualNodes.get(nodeId);
+        const formatted = formatPosition(pos);
+        if (info) {
+          state.manualLines[info.lineIndex] = info.prefix + formatted + info.suffix;
+        } else {
+          const prefix = `  ${nodeId}@{ position: `;
+          const suffix = ' }';
+          state.manualLines.push(prefix + formatted + suffix);
+          state.manualNodes.set(nodeId, {
+            lineIndex: state.manualLines.length - 1,
+            prefix,
+            suffix,
+          });
+        }
+        state.manualText = state.manualLines.join('\n');
+      };
+
+      const createPositionsProxy = (initialPositions) => {
+        const target = {};
+        state.positionTarget = target;
+        const proxy = new Proxy(target, {
+          set(obj, prop, value) {
+            const normalized = normalizePosition(value);
+            if (!normalized) {
+              return true;
+            }
+            const prev = obj[prop];
+            if (prev && prev.x === normalized.x && prev.y === normalized.y) {
+              return true;
+            }
+            obj[prop] = normalized;
+            updateManualLine(prop, normalized);
+            emitManualChange(prop, normalized);
+            return true;
+          },
+          get(obj, prop) {
+            return obj[prop];
+          },
+        });
+        state.isInitializing = true;
+        for (const [nodeId, coords] of Object.entries(initialPositions)) {
+          proxy[nodeId] = coords;
+        }
+        state.isInitializing = false;
+        state.manualText = state.manualLines.join('\n');
+        updateEditor();
+        return proxy;
+      };
+
+      const pointerToSvgCoords = (svg, event) => {
+        const ctm = svg.getScreenCTM();
+        if (!ctm) {
+          return { x: event.clientX, y: event.clientY };
+        }
+        let inverse;
+        try {
+          inverse = ctm.inverse();
+        } catch (error) {
+          console.warn('Unable to invert SVG matrix for pointer conversion', error);
+          return { x: event.clientX, y: event.clientY };
+        }
+        if (typeof DOMPoint === 'function') {
+          const point = new DOMPoint(event.clientX, event.clientY);
+          const transformed = point.matrixTransform(inverse);
+          return { x: transformed.x, y: transformed.y };
+        }
+        const point = svg.createSVGPoint();
+        point.x = event.clientX;
+        point.y = event.clientY;
+        const transformed = point.matrixTransform(inverse);
+        return { x: transformed.x, y: transformed.y };
+      };
+
+      const parseTransform = (transformValue) => {
+        const match = /translate\(([-\d.]+)[ ,]([-\d.]+)\)/.exec(transformValue ?? '');
+        if (!match) {
+          return { x: 0, y: 0 };
+        }
+        return { x: Number(match[1]) || 0, y: Number(match[2]) || 0 };
+      };
+
+      const attachDragHandlers = () => {
+        const svg = manualTarget.querySelector('svg');
+        if (!svg) {
+          return;
+        }
+        svg.style.touchAction = 'none';
+        const nodes = Array.from(svg.querySelectorAll('.nodes > g.node'));
+        for (const nodeEl of nodes) {
+          const title = nodeEl.querySelector('title');
+          const nodeId = title?.textContent?.trim();
+          if (!nodeId) {
+            continue;
+          }
+          nodeEl.style.cursor = 'grab';
+          nodeEl.style.touchAction = 'none';
+
+          const handlePointerDown = (event) => {
+            event.preventDefault();
+            const pointerId = event.pointerId;
+            const start = parseTransform(nodeEl.getAttribute('transform'));
+            const origin = pointerToSvgCoords(svg, event);
+            const offsetX = origin.x - start.x;
+            const offsetY = origin.y - start.y;
+            let currentX = start.x;
+            let currentY = start.y;
+
+            nodeEl.setPointerCapture(pointerId);
+            nodeEl.style.cursor = 'grabbing';
+
+            const handlePointerMove = (moveEvent) => {
+              if (moveEvent.pointerId !== pointerId) {
+                return;
+              }
+              const point = pointerToSvgCoords(svg, moveEvent);
+              currentX = point.x - offsetX;
+              currentY = point.y - offsetY;
+              nodeEl.setAttribute('transform', `translate(${currentX}, ${currentY})`);
+              state.positions[nodeId] = { x: currentX, y: currentY };
+            };
+
+            const handlePointerUp = (endEvent) => {
+              if (endEvent.pointerId !== pointerId) {
+                return;
+              }
+              svg.removeEventListener('pointermove', handlePointerMove);
+              svg.removeEventListener('pointerup', handlePointerUp);
+              svg.removeEventListener('pointercancel', handlePointerUp);
+              nodeEl.releasePointerCapture(pointerId);
+              nodeEl.style.cursor = 'grab';
+              const endPoint = pointerToSvgCoords(svg, endEvent);
+              currentX = endPoint.x - offsetX;
+              currentY = endPoint.y - offsetY;
+              state.positions[nodeId] = { x: currentX, y: currentY };
+              scheduleManualRender();
+            };
+
+            svg.addEventListener('pointermove', handlePointerMove);
+            svg.addEventListener('pointerup', handlePointerUp);
+            svg.addEventListener('pointercancel', handlePointerUp);
+          };
+
+          nodeEl.addEventListener('pointerdown', handlePointerDown);
+        }
+      };
+
+      const renderAutomaticDiagram = async (example) => {
+        const active = state.currentExample;
+        try {
+          const { svg } = await mermaid.render(`${example.id}-automatic`, example.before);
+          if (active !== state.currentExample) {
+            return;
+          }
+          automaticTarget.innerHTML = svg;
+        } catch (error) {
+          if (active === state.currentExample) {
+            automaticTarget.innerHTML = '<p>Failed to render automatic diagram.</p>';
+          }
+          console.error('Failed to render automatic diagram', error);
+        }
+      };
+
+      const renderManualDiagram = async (example) => {
+        const active = state.currentExample;
+        try {
+          const { svg } = await mermaid.render(`${example.id}-manual`, state.manualText);
+          if (active !== state.currentExample) {
+            return;
+          }
+          manualTarget.innerHTML = svg;
+          attachDragHandlers();
+        } catch (error) {
+          if (active === state.currentExample) {
+            manualTarget.innerHTML = '<p>Failed to render manual diagram.</p>';
+          }
+          console.error('Failed to render manual diagram', error);
+        }
+      };
+
+      const scheduleManualRender = () => {
+        if (state.renderScheduled || !state.currentExample) {
+          return;
+        }
+        state.renderScheduled = true;
+        requestAnimationFrame(async () => {
+          state.renderScheduled = false;
+          await renderManualDiagram(state.currentExample);
+        });
+      };
+
+      const loadExample = async (example) => {
+        state.currentExample = example;
+        titleEl.textContent = example.title;
+        descriptionEl.textContent = example.description;
+        state.manualLines = example.after.split('\n');
+        state.manualNodes = new Map();
+        state.manualText = example.after;
+        state.renderScheduled = false;
+        const initialPositions = parseManualPositions();
+        state.positions = createPositionsProxy(initialPositions);
+        await renderAutomaticDiagram(example);
+        await renderManualDiagram(example);
+      };
+
+      for (const example of examples) {
+        const option = document.createElement('option');
+        option.value = example.id;
+        option.textContent = example.title;
+        selectEl.append(option);
+      }
+
+      selectEl.addEventListener('change', async () => {
+        const example = examples.find((item) => item.id === selectEl.value);
+        if (example) {
+          await loadExample(example);
+        }
+      });
+
+      if (examples.length > 0) {
+        selectEl.value = examples[0].id;
+        await loadExample(examples[0]);
+      }
+    </script>
+    <script src="/dev/reload.js"></script>
+  </body>
+</html>
