@@ -454,11 +454,27 @@
       };
 
       const parseTransform = (transformValue) => {
-        const match = /translate\(([-\d.]+)[ ,]([-\d.]+)\)/.exec(transformValue ?? '');
+        const numberPattern = '[-+]?\\d*\\.?\\d+(?:[eE][-+]?\\d+)?';
+        const match = new RegExp(`translate\\((${numberPattern})[ ,](${numberPattern})\\)`).exec(
+          transformValue ?? ''
+        );
         if (!match) {
           return { x: 0, y: 0 };
         }
         return { x: Number(match[1]) || 0, y: Number(match[2]) || 0 };
+      };
+
+      const getManualStart = (nodeId, fallback) => {
+        const source = state.positionTarget ?? {};
+        const proxy = state.positions;
+        const manual = source[nodeId] || (proxy && proxy[nodeId]);
+        if (manual && Number.isFinite(manual.x) && Number.isFinite(manual.y)) {
+          return { x: Number(manual.x), y: Number(manual.y) };
+        }
+        if (fallback && Number.isFinite(fallback.x) && Number.isFinite(fallback.y)) {
+          return fallback;
+        }
+        return { x: 0, y: 0 };
       };
 
       const getNodeId = (nodeEl) => {
@@ -497,7 +513,8 @@
           const handlePointerDown = (event) => {
             event.preventDefault();
             const pointerId = event.pointerId;
-            const start = parseTransform(nodeEl.getAttribute('transform'));
+            const startTransform = parseTransform(nodeEl.getAttribute('transform'));
+            const start = getManualStart(nodeId, startTransform);
             let currentX = start.x;
             let currentY = start.y;
             const startPoint = pointerToSvgCoords(svg, event);
