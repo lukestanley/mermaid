@@ -135,6 +135,7 @@
       </main>
     </div>
     <script type="module">
+      import { computeDragPosition } from './manual-positioning-drag-utils.js';
       import mermaid from '/mermaid.esm.mjs';
       import layouts from '/mermaid-layout-elk.esm.mjs';
 
@@ -500,20 +501,14 @@
             let currentX = start.x;
             let currentY = start.y;
             const startPoint = pointerToSvgCoords(svg, event);
-            const offsetX = startPoint ? startPoint.x - currentX : 0;
-            const offsetY = startPoint ? startPoint.y - currentY : 0;
 
             const applyPoint = (point) => {
-              if (!point) {
+              const next = computeDragPosition(start, startPoint, point);
+              if (!next) {
                 return false;
               }
-              const nextX = point.x - offsetX;
-              const nextY = point.y - offsetY;
-              if (!Number.isFinite(nextX) || !Number.isFinite(nextY)) {
-                return false;
-              }
-              currentX = nextX;
-              currentY = nextY;
+              currentX = next.x;
+              currentY = next.y;
               nodeEl.setAttribute('transform', `translate(${currentX}, ${currentY})`);
               return true;
             };
