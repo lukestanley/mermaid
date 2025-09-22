@@ -1003,6 +1003,32 @@ flowchart TD
   A@{ img: "https://mermaid.js.org/favicon.svg", label: "My example image label", pos: "t", h: 60, constraint: "on" }
 ```
 
+## Manual node positions (optional)
+
+Automatic layout keeps most diagrams tidy, but you can manually place specific nodes when you need precise positioning. Add a `position` field to the node metadata to provide coordinates in the diagram's coordinate system (x grows to the right, y grows downward).
+
+- Object form: `position: { x: 120, y: 40 }`
+- Array form: `position: [120, 40]`
+- String form: `position: "120, 40"` (parentheses or square brackets around the numbers also work, e.g. `"(120 40)"`)
+
+Only the nodes with a `position` specified are moved; all other nodes continue to use the automatic layout.
+
+```mermaid-example
+flowchart LR
+  Start@{ position: { x: 20, y: 60 } }
+  Process@{ position: [160, 60] }
+  Decision@{ position: "300 120" }
+  Start --> Process --> Decision
+```
+
+```mermaid
+flowchart LR
+  Start@{ position: { x: 20, y: 60 } }
+  Process@{ position: [160, 60] }
+  Decision@{ position: "300 120" }
+  Start --> Process --> Decision
+```
+
 ## Links between nodes
 
 Nodes can be connected with links/edges. It is possible to have different types of links or attach a text string to a link.

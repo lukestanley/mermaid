@@ -48,6 +48,10 @@ stats/
 demos/dev/**
 !/demos/dev/example.html
 !/demos/dev/reload.js
+!/demos/dev/manual-positioning.html
+!/demos/dev/manual-positioning-gallery.html
+!/demos/dev/manual-positioning-drag-utils.js
+!/demos/dev/manual-positioning-drag-utils.spec.ts
 tsx-0/**
 vite.config.ts.timestamp-*
 

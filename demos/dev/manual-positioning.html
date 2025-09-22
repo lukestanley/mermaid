@@ -1,0 +1,149 @@
+<!--Duplicate of dev/example.html tailored for manual positioning demo-->
+<html>
+  <head>
+    <title>Mermaid manual positioning demo</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        line-height: 1.5;
+      }
+      body {
+        margin: 0;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        background: radial-gradient(circle at top left, rgba(80, 120, 200, 0.08), transparent 55%);
+      }
+      h1 {
+        margin: 0;
+        text-align: center;
+        letter-spacing: 0.02em;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(260px, 340px) 1fr;
+        gap: 1.5rem;
+        align-items: start;
+      }
+      .pane {
+        background: rgba(255, 255, 255, 0.72);
+        border-radius: 0.75rem;
+        border: 1px solid rgba(120, 120, 120, 0.25);
+        padding: 1.25rem;
+        box-shadow: 0 16px 36px rgba(10, 30, 70, 0.1);
+        backdrop-filter: blur(8px);
+      }
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+      }
+      select,
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 0.5rem;
+        border: 1px solid rgba(120, 120, 120, 0.35);
+        padding: 0.6rem 0.75rem;
+        font-size: 0.95rem;
+        font-family: 'Fira Code', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        background: rgba(255, 255, 255, 0.92);
+        color: inherit;
+      }
+      textarea {
+        min-height: 180px;
+        resize: vertical;
+        margin-bottom: 0.75rem;
+        white-space: pre;
+      }
+      .output {
+        min-height: 120px;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        border: 1px solid rgba(120, 120, 120, 0.35);
+        background: rgba(16, 28, 45, 0.9);
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 0.85rem;
+        font-family: 'Fira Code', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        overflow: auto;
+        white-space: pre;
+      }
+      .diagrams {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 1.5rem;
+      }
+      figure {
+        margin: 0;
+        border-radius: 0.75rem;
+        border: 1px solid rgba(120, 120, 120, 0.2);
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.7);
+        box-shadow: 0 12px 30px rgba(15, 25, 45, 0.08);
+      }
+      figcaption {
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+        text-align: center;
+      }
+      svg {
+        width: 100%;
+        height: auto;
+      }
+      .info {
+        margin: 0 0 1rem 0;
+        color: rgba(30, 30, 30, 0.75);
+        font-size: 0.95rem;
+      }
+      @media (max-width: 980px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Manual node positioning playground</h1>
+    <div class="layout">
+      <aside class="pane">
+        <p class="info">
+          Drag nodes in the manual diagram to capture coordinates. Updated positions are logged to the
+          console, reflected here, dispatched via the <code>mermaidmanualpositionchange</code> event, and
+          passed to <code>window.onManualPositionChange</code> when defined.
+        </p>
+        <label for="layout-select">Layout algorithm</label>
+        <select id="layout-select"></select>
+        <p class="info" id="layout-description"></p>
+        <label for="example-select">Choose a scenario</label>
+        <select id="example-select"></select>
+        <label for="manual-editor">Manual coordinates</label>
+        <textarea id="manual-editor" spellcheck="false"></textarea>
+        <div class="output" id="positions-output">Select an example to inspect coordinates.</div>
+      </aside>
+      <main class="pane">
+        <h2 id="example-title"></h2>
+        <p class="info" id="example-description"></p>
+        <div class="diagrams">
+          <figure>
+            <figcaption>Automatic layout</figcaption>
+            <div id="automatic-diagram"></div>
+          </figure>
+          <figure>
+            <figcaption>Manual coordinates</figcaption>
+            <div id="manual-diagram"></div>
+          </figure>
+        </div>
+      </main>
+    </div>
+    <script type="module">
+      import mermaid from '/mermaid.esm.mjs';
+      import layouts from '/mermaid-layout-elk.esm.mjs';
+      import { setupManualPositioningDemo } from '../manual-positioning/app.js';
+
+      await setupManualPositioningDemo({ mermaid, layouts });
+    </script>
+    <script src="/dev/reload.js"></script>
+  </body>
+</html>

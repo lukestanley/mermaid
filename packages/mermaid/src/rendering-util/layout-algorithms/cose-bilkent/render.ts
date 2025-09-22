@@ -1,5 +1,6 @@
 import type { InternalHelpers, LayoutData, RenderOptions, SVG, SVGGroup } from 'mermaid';
 import { executeCoseBilkentLayout } from './layout.js';
+import type { LayoutResult } from './types.js';
 import type { D3Selection } from '../../../types.js';
 
 type Node = Record<string, unknown>;
@@ -12,6 +13,64 @@ interface NodeWithPosition extends Node {
   height?: number;
   id?: string;
 }
+
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
+export const applyManualLayoutAdjustments = (
+  layoutResult: LayoutResult,
+  layoutData: LayoutData
+) => {
+  const manualPositions = new Map<string, { x: number; y: number }>();
+  for (const node of layoutData.nodes ?? []) {
+    const manual = (node as { manualPosition?: { x?: unknown; y?: unknown } }).manualPosition;
+    const manualX = manual?.x;
+    const manualY = manual?.y;
+    if (isFiniteNumber(manualX) && isFiniteNumber(manualY)) {
+      manualPositions.set(node.id, { x: manualX, y: manualY });
+    }
+  }
+
+  const deltas = new Map<string, { dx: number; dy: number }>();
+
+  const nodes = layoutResult.nodes.map((node) => {
+    const baseX = isFiniteNumber(node.x) ? node.x : 0;
+    const baseY = isFiniteNumber(node.y) ? node.y : 0;
+    const manual = manualPositions.get(node.id);
+    if (manual) {
+      deltas.set(node.id, { dx: manual.x - baseX, dy: manual.y - baseY });
+      return { ...node, x: manual.x, y: manual.y };
+    }
+    deltas.set(node.id, { dx: 0, dy: 0 });
+    return { ...node, x: baseX, y: baseY };
+  });
+
+  const edges = layoutResult.edges.map((edge) => {
+    const startDelta = deltas.get(edge.source) ?? { dx: 0, dy: 0 };
+    const endDelta = deltas.get(edge.target) ?? { dx: 0, dy: 0 };
+    const midDx = (startDelta.dx + endDelta.dx) / 2;
+    const midDy = (startDelta.dy + endDelta.dy) / 2;
+
+    const startX = (isFiniteNumber(edge.startX) ? edge.startX : 0) + startDelta.dx;
+    const startY = (isFiniteNumber(edge.startY) ? edge.startY : 0) + startDelta.dy;
+    const midX = (isFiniteNumber(edge.midX) ? edge.midX : 0) + midDx;
+    const midY = (isFiniteNumber(edge.midY) ? edge.midY : 0) + midDy;
+    const endX = (isFiniteNumber(edge.endX) ? edge.endX : 0) + endDelta.dx;
+    const endY = (isFiniteNumber(edge.endY) ? edge.endY : 0) + endDelta.dy;
+
+    return {
+      ...edge,
+      startX,
+      startY,
+      midX,
+      midY,
+      endX,
+      endY,
+    };
+  });
+
+  return { nodes, edges };
+};
 
 /**
  * Render function for cose-bilkent layout algorithm
@@ -101,11 +160,20 @@ export const render = async (
 
   const layoutResult = await executeCoseBilkentLayout(updatedLayoutData, data4Layout.config);
 
+  const { nodes: positionedNodes, edges: positionedEdges } = applyManualLayoutAdjustments(
+    layoutResult,
+    data4Layout
+  );
+
   // Step 3: Position the nodes based on layout results
   log.debug('Positioning nodes based on layout results');
 
-  layoutResult.nodes.forEach((positionedNode) => {
+  positionedNodes.forEach((positionedNode) => {
     const node = nodeDb[positionedNode.id];
+    if (node) {
+      node.x = positionedNode.x;
+      node.y = positionedNode.y;
+    }
     if (node?.domId) {
       // Position the node at the calculated coordinates
       // The positionedNode.x/y represents the center of the node, so use directly
@@ -114,15 +182,11 @@ export const render = async (
         `translate(${positionedNode.x}, ${positionedNode.y})`
       );
 
-      // Store the final position
-      node.x = positionedNode.x;
-      node.y = positionedNode.y;
-
       log.debug(`Positioned node ${node.id} at center (${positionedNode.x}, ${positionedNode.y})`);
     }
   });
 
-  layoutResult.edges.forEach((positionedEdge) => {
+  positionedEdges.forEach((positionedEdge) => {
     const edge = data4Layout.edges.find((e) => e.id === positionedEdge.id);
     if (edge) {
       // Update the edge data with positioned coordinates
@@ -148,7 +212,7 @@ export const render = async (
 
       if (startNode && endNode) {
         // Find the positioned edge data
-        const positionedEdge = layoutResult.edges.find((e) => e.id === edge.id);
+        const positionedEdge = positionedEdges.find((e) => e.id === edge.id);
 
         if (positionedEdge) {
           log.debug('APA01 positionedEdge', positionedEdge);

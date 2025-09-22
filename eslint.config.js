@@ -35,6 +35,7 @@ export default tseslint.config(
           './packages/*/tsconfig.json',
           './packages/*/tsconfig.eslint.json',
           './packages/mermaid/src/docs/tsconfig.json',
+          './demos/manual-positioning/tsconfig.json',
         ],
         tsconfigRootDir: import.meta.dirname,
       },
