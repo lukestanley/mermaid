@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeDragPosition } from './manual-positioning-drag-utils.js';
+import { computeDragPosition } from '../manual-positioning/drag-utils.js';
 
 describe('computeDragPosition', () => {
   it('preserves manual origin when pointer coordinates include a global offset', () => {

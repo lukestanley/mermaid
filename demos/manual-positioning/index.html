@@ -1,11 +1,18 @@
-<!--Duplicate of dev/example.html tailored for manual positioning demo-->
-<html>
+<!doctype html>
+<html lang="en">
   <head>
-    <title>Mermaid manual positioning demo</title>
+    <meta charset="utf-8" />
+    <title>Mermaid manual positioning playground</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
       :root {
         color-scheme: light dark;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
         line-height: 1.5;
       }
       body {
@@ -109,9 +116,9 @@
     <div class="layout">
       <aside class="pane">
         <p class="info">
-          Drag nodes in the manual diagram to capture coordinates. Updated positions are logged to the
-          console, reflected here, dispatched via the <code>mermaidmanualpositionchange</code> event, and
-          passed to <code>window.onManualPositionChange</code> when defined.
+          Drag any node in the manual diagram to capture coordinates. Updates appear here, are
+          logged to the console, and fire a
+          <code>mermaidmanualpositionchange</code> event so custom handlers can respond.
         </p>
         <label for="layout-select">Layout algorithm</label>
         <select id="layout-select"></select>
@@ -140,10 +147,9 @@
     <script type="module">
       import mermaid from '/mermaid.esm.mjs';
       import layouts from '/mermaid-layout-elk.esm.mjs';
-      import { setupManualPositioningDemo } from '../manual-positioning/app.js';
+      import { setupManualPositioningDemo } from './app.js';
 
       await setupManualPositioningDemo({ mermaid, layouts });
     </script>
-    <script src="/dev/reload.js"></script>
   </body>
 </html>

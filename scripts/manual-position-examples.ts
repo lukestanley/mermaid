@@ -1,12 +1,14 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { EXAMPLES } from './manual-position-data.js';
+import { EXAMPLES, LAYOUT_OPTIONS } from './manual-position-data.js';
 
 const OUTPUT_DIR = new URL('../demos/dev/', import.meta.url);
 const IMG_DIR = new URL('../img/manual-positioning/', import.meta.url);
 const outputDirPath = fileURLToPath(OUTPUT_DIR);
 const imgDirPath = fileURLToPath(IMG_DIR);
+
+const layoutOptionsJson = JSON.stringify(LAYOUT_OPTIONS);
 
 const html = `<!doctype html>
 <html lang="en">
@@ -140,31 +142,7 @@ const html = `<!doctype html>
       import mermaid from '/mermaid.esm.mjs';
       import layouts from '/mermaid-layout-elk.esm.mjs';
 
-      const layoutOptions = [
-        {
-          value: 'dagre',
-          label: 'Dagre (layered)',
-          description: 'The default layered solver keeps directional graphs tidy with even spacing.',
-        },
-        {
-          value: 'cose-bilkent',
-          label: 'fCoSE (force-directed)',
-          description:
-            'Force-directed placement from Cytoscape spreads nodes naturally while respecting manual coordinates.',
-        },
-        {
-          value: 'elk',
-          label: 'ELK layered',
-          description:
-            "ELK's layered engine focuses on clear orthogonal routing and balanced layers for dense diagrams.",
-        },
-        {
-          value: 'elk.force',
-          label: 'ELK force',
-          description:
-            'A physics-inspired ELK layout that pairs well with manual tweaks for organic storyboards.',
-        },
-      ];
+      const layoutOptions = ${layoutOptionsJson};
 
       mermaid.registerLayoutLoaders(layouts);
 

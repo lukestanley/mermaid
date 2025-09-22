@@ -4,7 +4,8 @@
   "compilerOptions": {
     // ensure that nobody can accidentally use this config for a build
     "noEmit": true,
-    "allowJs": true
+    "allowJs": true,
+    "checkJs": true
   },
   "include": [
     "./.build/*.ts",
@@ -16,6 +17,8 @@
     "./cypress",
     "./__mocks__",
     "./demos/dev",
+    "./demos/manual-positioning",
+    "./demos/manual-positioning/**/*.js",
     "./vite.config.ts",
     "./vitest.workspace.js",
     "eslint.config.js"
