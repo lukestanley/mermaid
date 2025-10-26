@@ -2,7 +2,7 @@ export type MarkdownWordType = 'normal' | 'strong' | 'em';
 import type { MermaidConfig } from '../config.type.js';
 import type { ClusterShapeID } from './rendering-elements/clusters.js';
 import type { ShapeID } from './rendering-elements/shapes.js';
-import type { Bounds, Point } from '../types.js';
+import type { Bounds, ManualPosition, Point } from '../types.js';
 export interface MarkdownWord {
   content: string;
   type: MarkdownWordType;
@@ -42,6 +42,7 @@ interface BaseNode {
   isGroup?: boolean;
   width?: number;
   height?: number;
+  manualPosition?: ManualPosition;
   // Specific properties for State Diagram nodes TODO remove and use generic properties
   intersect?: (point: any) => any;
   calcIntersect?: (bounds: Bounds, point: Point) => any;
